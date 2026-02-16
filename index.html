@@ -2,8 +2,15 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>傳統超市智慧掃碼助手 V2</title>
+    <!-- 設定 viewport 避免縮放，並適配瀏海屏 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA 模式設定 (加入主畫面後會隱藏瀏覽器外框) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#2E7D32">
+    
+    <title>超市助手 V3</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -11,24 +18,25 @@
 
     <style>
         :root {
-            --primary-color: #2E7D32; /* 森林綠 */
-            --accent-color: #FF9800; /* 琥珀橘 */
-            --bg-color: #f8f9fa;
+            --primary-color: #2E7D32;
+            --accent-color: #FF9800;
+            --bg-color: #f2f3f5;
             --white: #ffffff;
             --text-main: #2c3e50;
-            --border-color: #e0e0e0;
-            --danger-color: #d32f2f;
-            --nav-height: 65px;
+            --nav-height: 60px;
+            /* 取得瀏覽器安全區域 (避開 iPhone 底部橫條) */
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0; padding: 0;
             background-color: var(--bg-color);
             color: var(--text-main);
-            height: 100vh;
+            /* 使用 dvh 確保在手機瀏覽器中佔滿實際可視高度 */
+            height: 100dvh; 
             display: flex; flex-direction: column; overflow: hidden;
         }
 
@@ -36,19 +44,23 @@
         header {
             background-color: var(--primary-color);
             color: var(--white);
-            height: 55px;
+            height: 50px;
+            flex-shrink: 0; /* 防止被壓縮 */
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 15px;
-            font-size: 18px; font-weight: bold;
+            font-size: 17px; font-weight: bold;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             z-index: 100;
         }
-        .status-dot { width: 10px; height: 10px; background: #4CAF50; border-radius: 50%; border: 2px solid white; }
 
         /* 主要內容區 */
         main {
-            flex: 1; overflow-y: auto; padding: 15px;
-            padding-bottom: 90px; /* 底部導航空間 */
+            flex: 1; 
+            overflow-y: auto; 
+            overflow-x: hidden;
+            padding: 15px;
+            /* 底部留白 = 導航欄高度 + 安全區域 + 額外緩衝，確保按鈕不被遮擋 */
+            padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 20px);
             position: relative;
         }
 
@@ -59,275 +71,245 @@
         /* 底部導航欄 */
         nav {
             position: fixed; bottom: 0; left: 0; width: 100%;
-            height: var(--nav-height);
+            height: calc(var(--nav-height) + var(--safe-bottom));
             background-color: var(--white);
-            border-top: 1px solid var(--border-color);
-            display: flex; justify-content: space-around; align-items: center;
+            border-top: 1px solid #eee;
+            display: flex; justify-content: space-around; align-items: flex-start;
+            padding-top: 8px;
             z-index: 100;
-            padding-bottom: env(safe-area-inset-bottom);
             box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
         }
 
         .nav-item {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #999; font-size: 10px; width: 20%; height: 100%;
-            cursor: pointer; transition: color 0.2s;
+            display: flex; flex-direction: column; align-items: center;
+            color: #aaa; font-size: 10px; width: 20%; cursor: pointer;
         }
         .nav-item i { font-size: 22px; margin-bottom: 4px; }
         .nav-item.active { color: var(--primary-color); font-weight: bold; }
 
         /* UI 元件 */
         .btn {
-            border: none; border-radius: 8px; padding: 14px;
+            border: none; border-radius: 8px; padding: 12px;
             font-size: 16px; font-weight: bold; cursor: pointer;
-            width: 100%; text-align: center; display: block;
-            transition: opacity 0.2s;
+            width: 100%; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: transform 0.1s;
         }
-        .btn:active { opacity: 0.8; }
+        .btn:active { transform: scale(0.98); }
         .btn-primary { background-color: var(--primary-color); color: white; box-shadow: 0 4px 6px rgba(46, 125, 50, 0.2); }
-        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-secondary { background-color: #1976D2; color: white; }
+        .btn-danger { background-color: #d32f2f; color: white; }
         .btn-outline { background-color: transparent; border: 1px solid #ccc; color: #555; }
-        .btn-sm { padding: 8px 12px; font-size: 14px; width: auto; }
-
+        
         input, select {
             width: 100%; padding: 12px; border: 1px solid #ddd;
             border-radius: 8px; font-size: 16px; margin-bottom: 15px;
-            background: white; appearance: none;
+            background: white; -webkit-appearance: none; /* 移除 iOS 預設樣式 */
         }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; font-size: 14px; }
 
-        /* 掃描區與閃爍特效 */
-        #scanner-wrapper {
-            width: 100%; height: 260px; background: black;
+        /* 掃描區 */
+        .scanner-container {
+            width: 100%; height: 240px; background: #000;
             border-radius: 12px; overflow: hidden; margin-bottom: 15px;
-            position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            position: relative;
         }
-        #reader { width: 100%; height: 100%; object-fit: cover; }
-        .scan-flash {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(46, 125, 50, 0.5); z-index: 10;
-            display: none; pointer-events: none;
-        }
+        .scanner-video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* 卡片樣式 */
-        .card {
-            background: white; padding: 15px; border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 15px;
-        }
+        /* 卡片 */
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 15px; }
 
-        /* 購物清單優化 */
-        .cart-item {
+        /* 購物車與進貨列表 */
+        .list-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 12px 0; border-bottom: 1px solid #f0f0f0;
         }
-        .cart-item:last-child { border-bottom: none; }
         .qty-control {
             display: flex; align-items: center; gap: 10px;
             background: #f5f5f5; padding: 4px; border-radius: 20px;
         }
         .qty-btn {
-            width: 28px; height: 28px; border-radius: 50%; border: none;
+            width: 30px; height: 30px; border-radius: 50%; border: none;
             background: white; color: var(--text-main); font-weight: bold;
-            display: flex; align-items: center; justify-content: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-
-        /* 績效卡片 */
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .stat-box { background: white; padding: 20px 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        .stat-val { font-size: 24px; font-weight: bold; color: var(--primary-color); margin-top: 5px; }
-        .stat-label { font-size: 13px; color: #777; font-weight: 500; }
 
         /* Modal */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);
             display: none; justify-content: center; align-items: center;
-            z-index: 200;
+            z-index: 200; padding: 20px;
         }
         .modal-box {
             background: white; padding: 25px; border-radius: 16px;
-            width: 85%; max-width: 350px; animation: scaleUp 0.2s;
+            width: 100%; max-width: 350px; animation: scaleUp 0.2s;
+            max-height: 80vh; overflow-y: auto;
         }
         @keyframes scaleUp { from { transform: scale(0.9); } to { transform: scale(1); } }
 
-        /* 圖片預覽 */
-        .img-preview { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; background: #eee; }
+        /* 圖片處理 */
+        .img-preview-box {
+            width: 80px; height: 80px; background: #eee; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; cursor: pointer; border: 1px dashed #ccc;
+        }
+        .img-preview-box img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 </head>
 <body>
 
 <header>
     <div id="header-title">結帳櫃台</div>
-    <div style="display:flex; align-items:center; font-size:12px;">
-        <span class="status-dot"></span>&nbsp;連線中
-    </div>
+    <div style="font-size:12px; opacity:0.8;">V3.0</div>
 </header>
 
 <main>
     <!-- 1. 結帳頁面 -->
     <section id="page-checkout" class="page active">
-        <div id="scanner-wrapper">
-            <div id="reader"></div>
-            <div id="scan-flash" class="scan-flash"></div>
+        <div class="scanner-container">
+            <div id="reader-checkout"></div>
         </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-            <input type="number" id="manual-code" placeholder="手動輸入條碼" style="margin-bottom: 0; flex: 1;">
-            <button class="btn-primary" style="width: auto; padding: 0 20px;" onclick="manualAdd()">
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <input type="number" id="manual-code-checkout" placeholder="手動輸入條碼" style="margin-bottom: 0; flex: 1;">
+            <button class="btn-primary" style="width: auto; padding: 0 20px;" onclick="manualAdd('checkout')">
                 <i class="fas fa-plus"></i>
             </button>
         </div>
 
         <div class="card" style="min-height: 200px; display: flex; flex-direction: column;">
             <div id="cart-list" style="flex:1;">
-                <div style="text-align: center; color: #aaa; margin-top: 40px; display:flex; flex-direction:column; align-items:center;">
-                    <i class="fas fa-barcode" style="font-size: 40px; margin-bottom: 10px;"></i>
-                    請掃描或輸入商品
+                <div style="text-align: center; color: #ccc; margin-top: 40px;">
+                    <i class="fas fa-barcode" style="font-size: 40px; margin-bottom: 10px;"></i><br>
+                    請掃描商品
                 </div>
             </div>
             
             <div style="margin-top: 15px; padding-top: 15px; border-top: 2px dashed #eee;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <span style="font-size: 16px; color: #555;">數量: <span id="total-qty">0</span></span>
-                    <span style="font-size: 16px; color: #555;">總成本: <span id="total-cost" style="font-size:12px">$0</span></span>
-                </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 20px; font-weight: bold;">應收金額</span>
+                    <span style="font-size: 18px; font-weight: bold;">總計</span>
                     <span id="cart-total" style="font-size: 32px; font-weight: bold; color: var(--primary-color);">$0</span>
                 </div>
             </div>
         </div>
 
-        <button class="btn btn-primary" style="height: 60px; font-size: 20px;" onclick="showCheckoutModal()">
+        <button class="btn btn-primary" onclick="showCheckoutModal()">
             <i class="fas fa-coins"></i> 結帳 (Pay)
         </button>
     </section>
 
-    <!-- 2. 進貨管理頁面 -->
+    <!-- 2. 進貨管理頁面 (優化版) -->
     <section id="page-inventory" class="page">
-        <div class="card">
-            <h3 style="margin-top:0">商品查詢/建檔</h3>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <input type="text" id="inv-search" placeholder="掃描或輸入條碼" style="margin:0; flex:1">
-                <button class="btn btn-primary" style="width: auto;" onclick="searchInventory()">查詢</button>
-            </div>
-            
-            <hr style="border:0; border-top:1px solid #eee; margin: 15px 0;">
-            
-            <div id="edit-form" style="display:none;">
-                <input type="hidden" id="inv-barcode">
-                
-                <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px;">
-                    <div style="width: 70px; height: 70px; background: #f0f0f0; border-radius: 8px; overflow: hidden; position: relative;">
-                        <img id="inv-img-preview" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
-                        <i class="fas fa-camera" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#999;" id="inv-img-icon"></i>
-                    </div>
-                    <div style="flex:1;">
-                        <label class="btn btn-outline btn-sm" style="margin-bottom:0; text-align:center;">
-                            <i class="fas fa-upload"></i> 上傳照片
-                            <input type="file" id="inv-img-file" accept="image/*" style="display:none;" onchange="handleImageUpload(this)">
-                        </label>
-                    </div>
-                </div>
-
-                <label>商品名稱</label>
-                <input type="text" id="inv-name" placeholder="例如：可口可樂 600ml">
-                
-                <div style="display: flex; gap: 10px;">
-                    <div style="flex:1">
-                        <label>售價 (元)</label>
-                        <input type="number" id="inv-price" placeholder="0">
-                    </div>
-                    <div style="flex:1">
-                        <label>進貨成本 (元)</label>
-                        <input type="number" id="inv-cost" placeholder="0">
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 10px;">
-                    <div style="flex:1">
-                        <label>現有庫存</label>
-                        <input type="number" id="inv-stock" placeholder="0">
-                    </div>
-                    <div style="flex:1">
-                        <label style="color:var(--accent-color)">低庫存預警值</label>
-                        <input type="number" id="inv-threshold" value="5">
-                    </div>
-                </div>
-
-                <label>有效日期 (即期品追蹤)</label>
-                <input type="date" id="inv-expiry">
-
-                <button class="btn btn-primary" onclick="saveProduct()">儲存商品資訊</button>
-                <button class="btn btn-danger" style="margin-top:10px;" onclick="deleteProduct()">刪除商品</button>
-            </div>
-            <div id="inv-placeholder" style="text-align:center; color:#999; padding:20px;">
-                請輸入條碼開始
-            </div>
-        </div>
-    </section>
-
-    <!-- 3. 營收績效頁面 -->
-    <section id="page-performance" class="page">
-        <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 15px;">
-            <button class="btn btn-outline btn-sm" onclick="loadStats('day')" id="btn-stat-day">今日</button>
-            <button class="btn btn-outline btn-sm" onclick="loadStats('week')" id="btn-stat-week">本週</button>
-            <button class="btn btn-outline btn-sm" onclick="loadStats('all')" id="btn-stat-all">全部</button>
+        <!-- 這裡也加上掃描器 -->
+        <div class="scanner-container">
+            <div id="reader-inventory"></div>
         </div>
 
-        <div class="stat-grid">
-            <div class="stat-box">
-                <div class="stat-label">總營業額</div>
-                <div class="stat-val" id="stat-revenue">$0</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">淨利潤 (毛利)</div>
-                <div class="stat-val" id="stat-profit" style="color: var(--accent-color);">$0</div>
-            </div>
-        </div>
-
-        <div class="card" style="margin-top: 15px;">
-            <h3>銷售趨勢</h3>
-            <div style="height: 250px;">
-                <canvas id="salesChart"></canvas>
-            </div>
-        </div>
-    </section>
-
-    <!-- 4. 倉儲監控頁面 -->
-    <section id="page-warehouse" class="page">
-        <div style="display: flex; margin-bottom: 15px; background: #e0e0e0; border-radius: 8px; padding: 4px;">
-            <button class="btn" style="background:transparent; flex:1; padding:8px;" onclick="renderWarehouse('alert')" id="tab-alert">缺貨/即期</button>
-            <button class="btn" style="background:transparent; flex:1; padding:8px;" onclick="renderWarehouse('ranking')" id="tab-ranking">熱銷排行</button>
-        </div>
-        <div id="warehouse-list"></div>
-    </section>
-
-    <!-- 5. 設定與匯出頁面 -->
-    <section id="page-settings" class="page">
-        <div class="card">
-            <h3><i class="fas fa-file-export"></i> 報表匯出</h3>
-            <p style="color: #666; font-size: 13px; margin-bottom:15px;">
-                產生符合會計需求的 CSV 明細表或系統備份用的 JSONL 檔。
-            </p>
-            <button class="btn btn-primary" style="margin-bottom: 10px; background-color: #1565C0;" onclick="exportCSV()">
-                匯出交易明細 (Excel/CSV)
-            </button>
-            <button class="btn btn-outline" onclick="exportJSONL()">
-                匯出系統備份 (JSONL)
-            </button>
-        </div>
-
-        <div class="card">
-            <h3 style="color: var(--danger-color);"><i class="fas fa-exclamation-triangle"></i> 系統管理</h3>
-            <p style="color: #666; font-size: 13px;">清除所有商品與交易紀錄，此動作無法復原。</p>
-            <button class="btn btn-danger" onclick="clearAllData()">重置所有資料</button>
+        <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+            <input type="text" id="manual-code-inventory" placeholder="掃描或輸入條碼查詢" style="margin:0; flex:1">
+            <button class="btn btn-primary" style="width: auto;" onclick="manualAdd('inventory')">查詢</button>
         </div>
         
-        <div style="text-align:center; color:#aaa; font-size:12px; margin-top:20px;">
-            Traditional Supermarket Assistant V2.0<br>
-            Designed for Efficiency
+        <!-- 狀態A: 快速補貨 (掃描到舊商品時顯示) -->
+        <div id="panel-restock" class="card" style="display:none; border-left: 5px solid var(--primary-color);">
+            <h3 style="margin-top:0; color:var(--primary-color);">快速補貨</h3>
+            <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <img id="restock-img" src="" style="width:60px; height:60px; object-fit:cover; border-radius:6px; background:#eee;">
+                <div>
+                    <div id="restock-name" style="font-size:18px; font-weight:bold;">商品名稱</div>
+                    <div style="color:#666;">現有庫存: <b id="restock-current" style="font-size:20px;">0</b></div>
+                </div>
+            </div>
+
+            <label>新增數量 (本次進貨量)</label>
+            <div style="display:flex; gap:10px;">
+                <button class="qty-btn" onclick="adjustRestockInput(-1)" style="width:45px; height:45px;"><i class="fas fa-minus"></i></button>
+                <input type="number" id="restock-qty" value="1" style="margin:0; text-align:center; font-size:24px; font-weight:bold;">
+                <button class="qty-btn" onclick="adjustRestockInput(1)" style="width:45px; height:45px;"><i class="fas fa-plus"></i></button>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn btn-outline" onclick="enableEditMode()">修改詳細資料</button>
+                <button class="btn btn-primary" onclick="confirmRestock()">確認入庫</button>
+            </div>
+        </div>
+
+        <!-- 狀態B: 新增/編輯商品 (完整表單) -->
+        <div id="panel-edit" class="card" style="display:none;">
+            <h3 id="edit-title" style="margin-top:0">商品建檔</h3>
+            <input type="hidden" id="edit-barcode">
+            
+            <!-- 圖片上傳區 -->
+            <div style="display:flex; gap:15px; margin-bottom:15px; align-items:center;">
+                <label class="img-preview-box">
+                    <img id="edit-img-preview" src="" style="display:none;">
+                    <i class="fas fa-camera" id="edit-img-icon" style="color:#999; font-size:24px;"></i>
+                    <input type="file" accept="image/*" style="display:none" onchange="compressAndPreview(this)">
+                </label>
+                <div style="font-size:13px; color:#666;">
+                    點擊左側拍照<br>系統自動壓縮
+                </div>
+            </div>
+
+            <label>名稱</label>
+            <input type="text" id="edit-name" placeholder="商品名稱">
+            
+            <div style="display: flex; gap: 10px;">
+                <div style="flex:1"><label>售價</label><input type="number" id="edit-price"></div>
+                <div style="flex:1"><label>成本</label><input type="number" id="edit-cost"></div>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <div style="flex:1"><label>庫存</label><input type="number" id="edit-stock"></div>
+                <div style="flex:1"><label>預警值</label><input type="number" id="edit-threshold" value="5"></div>
+            </div>
+
+            <label>有效期限</label>
+            <input type="date" id="edit-expiry">
+
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="btn btn-outline" onclick="cancelEdit()">取消</button>
+                <button class="btn btn-primary" onclick="saveProductFull()">儲存</button>
+            </div>
+            <button class="btn btn-danger" style="margin-top:15px;" onclick="deleteProduct()">刪除此商品</button>
+        </div>
+
+        <div id="inv-placeholder" style="text-align:center; color:#999; padding:40px;">
+            <i class="fas fa-search" style="font-size:30px; margin-bottom:10px;"></i><br>
+            請掃描上方條碼<br>進行補貨或建檔
+        </div>
+    </section>
+
+    <!-- 3. 績效 (簡化版) -->
+    <section id="page-performance" class="page">
+        <div class="card">
+            <h3>今日概況</h3>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; text-align:center;">
+                <div>
+                    <div style="font-size:12px; color:#666;">營業額</div>
+                    <div id="stat-rev" style="font-size:24px; font-weight:bold; color:var(--primary-color)">$0</div>
+                </div>
+                <div>
+                    <div style="font-size:12px; color:#666;">毛利</div>
+                    <div id="stat-profit" style="font-size:24px; font-weight:bold; color:var(--accent-color)">$0</div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <canvas id="salesChart" height="200"></canvas>
+        </div>
+    </section>
+
+    <!-- 4. 設定 -->
+    <section id="page-settings" class="page">
+        <div class="card">
+            <h3>資料管理</h3>
+            <button class="btn btn-secondary" onclick="exportData()" style="margin-bottom:10px;">
+                <i class="fas fa-file-csv"></i> 匯出 CSV 報表
+            </button>
+            <button class="btn btn-danger" onclick="clearData()">
+                <i class="fas fa-trash"></i> 清空所有資料
+            </button>
         </div>
     </section>
 </main>
@@ -342,183 +324,142 @@
     <div class="nav-item" onclick="switchPage('page-performance', '營收分析')">
         <i class="fas fa-chart-line"></i><span>績效</span>
     </div>
-    <div class="nav-item" onclick="switchPage('page-warehouse', '倉儲監控')">
-        <i class="fas fa-warehouse"></i><span>倉儲</span>
-    </div>
     <div class="nav-item" onclick="switchPage('page-settings', '系統設定')">
         <i class="fas fa-cog"></i><span>設定</span>
     </div>
 </nav>
 
-<!-- 結帳確認 Modal -->
+<!-- 結帳 Modal -->
 <div id="modal-checkout" class="modal-overlay">
     <div class="modal-box">
-        <h3><i class="fas fa-check-circle" style="color:var(--primary-color)"></i> 確認結帳</h3>
-        <p style="text-align:center; margin: 20px 0;">總金額<br><span id="modal-total-display" style="font-weight:bold; font-size: 36px; color:var(--primary-color)"></span></p>
-        
+        <h3 style="text-align:center;">確認結帳</h3>
+        <div style="text-align:center; font-size:36px; font-weight:bold; color:var(--primary-color); margin:15px 0;">
+            <span id="modal-total">$0</span>
+        </div>
         <label>付款方式</label>
         <select id="pay-method">
-            <option value="現金">現金 (Cash)</option>
+            <option value="現金">現金</option>
             <option value="LinePay">Line Pay</option>
-            <option value="賒帳">賒帳 (Credit)</option>
+            <option value="賒帳">賒帳</option>
         </select>
-        
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <div style="display:flex; gap:10px; margin-top:20px;">
             <button class="btn btn-outline" onclick="closeModal()">取消</button>
-            <button class="btn btn-primary" onclick="processCheckout()">確認收款</button>
+            <button class="btn btn-primary" onclick="processCheckout()">收款</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- 資料庫初始化 ---
-    let DB_PRODUCTS = JSON.parse(localStorage.getItem('sma_v2_products')) || [];
-    let DB_TRANSACTIONS = JSON.parse(localStorage.getItem('sma_v2_transactions')) || [];
+    // --- 資料庫 ---
+    let DB_PRODUCTS = JSON.parse(localStorage.getItem('sma_v3_products')) || [];
+    let DB_TRANSACTIONS = JSON.parse(localStorage.getItem('sma_v3_transactions')) || [];
     
-    // 預設資料 (若為空)
+    // 範例資料
     if(DB_PRODUCTS.length === 0) {
         DB_PRODUCTS = [
-            { barcode: "1", name: "測試商品-可樂", price: 35, cost: 20, stock: 50, threshold: 10, expiry: "2025-12-31", sold: 0, img: "" },
-            { barcode: "2", name: "測試商品-泡麵", price: 25, cost: 15, stock: 5, threshold: 10, expiry: "2023-10-01", sold: 0, img: "" }
+            { barcode: "1", name: "可樂 350ml", price: 20, cost: 10, stock: 24, threshold: 5, expiry: "", img: "" }
         ];
         saveDB();
     }
 
-    // 購物車暫存
-    let currentCart = [];
-    
-    // 掃描器全域變數
-    let html5QrcodeScanner = null;
-    let isScannerRunning = false;
-    let isProcessingScan = false;
-
-    // 音效 Context
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-    // --- 核心功能函數 ---
-
     function saveDB() {
-        localStorage.setItem('sma_v2_products', JSON.stringify(DB_PRODUCTS));
-        localStorage.setItem('sma_v2_transactions', JSON.stringify(DB_TRANSACTIONS));
+        localStorage.setItem('sma_v3_products', JSON.stringify(DB_PRODUCTS));
+        localStorage.setItem('sma_v3_transactions', JSON.stringify(DB_TRANSACTIONS));
     }
 
-    function beep() {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.frequency.value = 1200; // 更高頻的嗶聲
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.15);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.15);
-        if(navigator.vibrate) navigator.vibrate(50);
-    }
+    // --- 全域變數 ---
+    let currentCart = [];
+    let scannerCheckout = null;
+    let scannerInventory = null;
+    let isProcessing = false;
+    let currentBarcode = ""; // 暫存進貨用的條碼
 
-    function flashScreen() {
-        const flash = document.getElementById('scan-flash');
-        flash.style.display = 'block';
-        setTimeout(() => { flash.style.display = 'none'; }, 200);
-    }
-
-    // --- 頁面導航 ---
+    // --- 頁面切換與相機管理 ---
     function switchPage(pageId, title) {
+        // UI 切換
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
         document.getElementById('header-title').innerText = title;
-
+        
+        // Nav 狀態
         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        const navIndex = ['page-checkout','page-inventory','page-performance','page-warehouse','page-settings'].indexOf(pageId);
-        if(navIndex !== -1) document.querySelectorAll('.nav-item')[navIndex].classList.add('active');
+        const navMap = {'page-checkout':0, 'page-inventory':1, 'page-performance':2, 'page-settings':3};
+        if(navMap[pageId] !== undefined) document.querySelectorAll('.nav-item')[navMap[pageId]].classList.add('active');
 
-        // 相機控制
-        if (pageId === 'page-checkout') {
-            startScanner();
-        } else {
-            stopScanner();
-        }
-
-        // 頁面初始化
-        if (pageId === 'page-performance') loadStats('day');
-        if (pageId === 'page-warehouse') renderWarehouse('alert');
+        // *** 關鍵：相機資源管理 ***
+        // 先關閉所有相機，避免衝突
+        stopAllScanners().then(() => {
+            if (pageId === 'page-checkout') {
+                startScanner('reader-checkout', handleCheckoutScan);
+            } else if (pageId === 'page-inventory') {
+                startScanner('reader-inventory', handleInventoryScan);
+                // 重置進貨畫面
+                document.getElementById('panel-restock').style.display = 'none';
+                document.getElementById('panel-edit').style.display = 'none';
+                document.getElementById('inv-placeholder').style.display = 'block';
+            } else if (pageId === 'page-performance') {
+                loadStats();
+            }
+        });
     }
 
-    // --- 掃描功能 ---
-    function startScanner() {
-        if (isScannerRunning) return;
-        html5QrcodeScanner = new Html5Qrcode("reader");
+    // --- 掃描器邏輯 ---
+    function startScanner(elementId, callback) {
+        const scanner = new Html5Qrcode(elementId);
         const config = { fps: 10, qrbox: { width: 250, height: 150 }, aspectRatio: 1.0 };
         
-        html5QrcodeScanner.start({ facingMode: "environment" }, config, (decodedText) => {
-            handleScanInput(decodedText);
-        }).then(() => { isScannerRunning = true; })
-          .catch(err => console.log("Camera Error", err));
+        scanner.start({ facingMode: "environment" }, config, (decodedText) => {
+            if(isProcessing) return;
+            isProcessing = true;
+            callback(decodedText);
+            // 防連掃鎖定 1秒
+            setTimeout(() => { isProcessing = false; }, 1000);
+        }).catch(err => console.log("Camera Start Fail", err));
+
+        if(elementId === 'reader-checkout') scannerCheckout = scanner;
+        else scannerInventory = scanner;
     }
 
-    function stopScanner() {
-        if (html5QrcodeScanner && isScannerRunning) {
-            html5QrcodeScanner.stop().then(() => {
-                html5QrcodeScanner.clear(); isScannerRunning = false;
-            }).catch(err => console.error(err));
-        }
+    async function stopAllScanners() {
+        if(scannerCheckout) { await scannerCheckout.stop(); scannerCheckout = null; }
+        if(scannerInventory) { await scannerInventory.stop(); scannerInventory = null; }
+        isProcessing = false;
     }
 
-    function handleScanInput(code) {
-        if (isProcessingScan) return;
-        isProcessingScan = true;
-        
+    // --- 結帳頁邏輯 ---
+    function handleCheckoutScan(code) {
         const product = DB_PRODUCTS.find(p => p.barcode === code);
-        
-        if (product) {
+        if(product) {
             beep();
-            flashScreen();
             addToCart(product);
-            setTimeout(() => { isProcessingScan = false; }, 800); // 防連掃
         } else {
-            beep();
-            if (html5QrcodeScanner) html5QrcodeScanner.pause(); 
-            if (confirm(`未找到商品 (${code})，是否前往建檔？`)) {
+            beep(true); // 錯誤音
+            if(confirm('未找到此商品，要去進貨/建檔嗎？')) {
                 switchPage('page-inventory', '進貨管理');
-                document.getElementById('inv-search').value = code;
-                searchInventory();
-            } else {
-                if (html5QrcodeScanner) html5QrcodeScanner.resume();
+                handleInventoryScan(code); // 直接帶入條碼
             }
-            isProcessingScan = false;
         }
     }
 
-    // --- 購物車邏輯 ---
-    function manualAdd() {
-        const code = document.getElementById('manual-code').value;
-        if(code) handleScanInput(code);
-        document.getElementById('manual-code').value = '';
+    function manualAdd(mode) {
+        const id = mode === 'checkout' ? 'manual-code-checkout' : 'manual-code-inventory';
+        const code = document.getElementById(id).value;
+        if(!code) return;
+        
+        if(mode === 'checkout') handleCheckoutScan(code);
+        else handleInventoryScan(code);
+        
+        document.getElementById(id).value = '';
     }
 
     function addToCart(product) {
         const existing = currentCart.find(i => i.barcode === product.barcode);
-        if (existing) {
-            if (existing.qty >= product.stock) return alert('庫存不足！');
+        if(existing) {
+            if(existing.qty >= product.stock) return alert('庫存不足！');
             existing.qty++;
         } else {
-            if (product.stock <= 0) return alert('庫存不足！');
+            if(product.stock <= 0) return alert('庫存不足！');
             currentCart.push({ ...product, qty: 1 });
-        }
-        renderCart();
-    }
-
-    function updateCartQty(index, change) {
-        const item = currentCart[index];
-        const newQty = item.qty + change;
-        
-        if (newQty <= 0) {
-            if(confirm('確定移除此商品？')) currentCart.splice(index, 1);
-        } else {
-            // 檢查總庫存
-            const product = DB_PRODUCTS.find(p => p.barcode === item.barcode);
-            if (newQty > product.stock) return alert('庫存不足！');
-            item.qty = newQty;
         }
         renderCart();
     }
@@ -526,77 +467,72 @@
     function renderCart() {
         const list = document.getElementById('cart-list');
         list.innerHTML = '';
-        let total = 0, totalQty = 0, totalCost = 0;
+        let total = 0;
         
         if(currentCart.length === 0) {
-            list.innerHTML = `<div style="text-align: center; color: #aaa; margin-top: 40px; display:flex; flex-direction:column; align-items:center;">
-                    <i class="fas fa-barcode" style="font-size: 40px; margin-bottom: 10px;"></i>
-                    請掃描或輸入商品
-                </div>`;
+            list.innerHTML = '<div style="text-align: center; color: #ccc; margin-top: 40px;"><i class="fas fa-barcode" style="font-size: 40px; margin-bottom: 10px;"></i><br>請掃描商品</div>';
         }
 
-        currentCart.forEach((item, index) => {
-            const subtotal = item.price * item.qty;
-            total += subtotal;
-            totalQty += item.qty;
-            totalCost += (item.cost * item.qty);
-
+        currentCart.forEach((item, idx) => {
+            total += item.price * item.qty;
             list.innerHTML += `
-                <div class="cart-item">
-                    <div style="flex:1">
-                        <div style="font-weight:bold; font-size:16px;">${item.name}</div>
-                        <div style="font-size:12px; color:#666; margin-top:2px;">$${item.price}</div>
-                    </div>
-                    <div class="qty-control">
-                        <button class="qty-btn" onclick="updateCartQty(${index}, -1)"><i class="fas fa-minus" style="font-size:10px"></i></button>
-                        <span style="font-weight:bold; min-width:20px; text-align:center;">${item.qty}</span>
-                        <button class="qty-btn" onclick="updateCartQty(${index}, 1)"><i class="fas fa-plus" style="font-size:10px"></i></button>
-                    </div>
-                    <div style="font-weight:bold; width: 60px; text-align:right;">$${subtotal}</div>
+            <div class="list-item">
+                <div style="flex:1">
+                    <div style="font-weight:bold">${item.name}</div>
+                    <div style="font-size:12px; color:#666">$${item.price}</div>
                 </div>
-            `;
+                <div class="qty-control">
+                    <button class="qty-btn" onclick="changeCartQty(${idx}, -1)">-</button>
+                    <b>${item.qty}</b>
+                    <button class="qty-btn" onclick="changeCartQty(${idx}, 1)">+</button>
+                </div>
+                <div style="width:60px; text-align:right; font-weight:bold">$${item.price * item.qty}</div>
+            </div>`;
         });
-        
         document.getElementById('cart-total').innerText = `$${total}`;
-        document.getElementById('total-qty').innerText = totalQty;
-        // 隱藏的總成本，方便 debug
-        document.getElementById('total-cost').innerText = `(成本 $${totalCost})`;
     }
 
-    // --- 結帳 ---
+    function changeCartQty(idx, delta) {
+        const item = currentCart[idx];
+        const newQty = item.qty + delta;
+        if(newQty <= 0) currentCart.splice(idx, 1);
+        else {
+            const stock = DB_PRODUCTS.find(p => p.barcode === item.barcode).stock;
+            if(newQty > stock) return alert('庫存不足');
+            item.qty = newQty;
+        }
+        renderCart();
+    }
+
+    // --- 結帳 Modal ---
     function showCheckoutModal() {
         if(currentCart.length === 0) return alert('購物車是空的');
-        const total = currentCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-        document.getElementById('modal-total-display').innerText = `$${total}`;
+        const total = currentCart.reduce((acc, i) => acc + (i.price * i.qty), 0);
+        document.getElementById('modal-total').innerText = `$${total}`;
         document.querySelector('.modal-overlay').style.display = 'flex';
     }
-
     function closeModal() { document.querySelector('.modal-overlay').style.display = 'none'; }
-
+    
     function processCheckout() {
-        const total = currentCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-        const totalCost = currentCart.reduce((sum, i) => sum + (i.cost * i.qty), 0);
+        const total = currentCart.reduce((acc, i) => acc + (i.price * i.qty), 0);
+        const cost = currentCart.reduce((acc, i) => acc + (i.cost * i.qty), 0);
         
         const tx = {
-            id: Date.now().toString(),
+            id: Date.now(),
             time: new Date().toISOString(),
             total: total,
-            cost: totalCost,
-            profit: total - totalCost,
+            cost: cost,
             method: document.getElementById('pay-method').value,
-            items: JSON.parse(JSON.stringify(currentCart)) // 紀錄當下狀態 (包含當時的成本與售價)
+            items: [...currentCart]
         };
         DB_TRANSACTIONS.push(tx);
 
-        // 扣庫存與加銷量
-        currentCart.forEach(cItem => {
-            const p = DB_PRODUCTS.find(p => p.barcode === cItem.barcode);
-            if(p) {
-                p.stock -= cItem.qty;
-                p.sold += cItem.qty;
-            }
+        // 扣庫存
+        currentCart.forEach(c => {
+            const p = DB_PRODUCTS.find(db => db.barcode === c.barcode);
+            if(p) p.stock -= c.qty;
         });
-
+        
         saveDB();
         currentCart = [];
         renderCart();
@@ -604,295 +540,252 @@
         alert('收款成功！');
     }
 
-    // --- 進貨管理 (含圖片) ---
-    function handleImageUpload(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // 這裡其實可以加入 Canvas 壓縮邏輯，為 MVP 簡化直接存
-                const base64 = e.target.result;
-                // 簡單檢查大小，避免 LocalStorage 爆掉
-                if(base64.length > 500000) { // 約 500KB
-                    alert('圖片過大，請使用較低解析度');
-                    return;
-                }
-                document.getElementById('inv-img-preview').src = base64;
-                document.getElementById('inv-img-preview').style.display = 'block';
-                document.getElementById('inv-img-icon').style.display = 'none';
-            }
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    function searchInventory() {
-        const code = document.getElementById('inv-search').value;
-        const p = DB_PRODUCTS.find(i => i.barcode === code);
+    // --- 進貨頁邏輯 (優化重點) ---
+    function handleInventoryScan(code) {
+        beep();
+        currentBarcode = code;
+        const product = DB_PRODUCTS.find(p => p.barcode === code);
         
-        document.getElementById('edit-form').style.display = 'block';
+        // 隱藏預設提示
         document.getElementById('inv-placeholder').style.display = 'none';
-        document.getElementById('inv-barcode').value = code;
+        document.getElementById('panel-restock').style.display = 'none';
+        document.getElementById('panel-edit').style.display = 'none';
 
+        if(product) {
+            // A. 商品存在 -> 進入快速補貨模式
+            document.getElementById('panel-restock').style.display = 'block';
+            document.getElementById('restock-name').innerText = product.name;
+            document.getElementById('restock-current').innerText = product.stock;
+            document.getElementById('restock-qty').value = 1;
+            document.getElementById('restock-img').src = product.img || "";
+            document.getElementById('restock-img').style.display = product.img ? 'block' : 'none';
+        } else {
+            // B. 商品不存在 -> 進入建檔模式
+            showEditForm(code, true);
+        }
+    }
+
+    function adjustRestockInput(delta) {
+        const el = document.getElementById('restock-qty');
+        let val = parseInt(el.value) || 0;
+        val += delta;
+        if(val < 1) val = 1;
+        el.value = val;
+    }
+
+    function confirmRestock() {
+        const addQty = parseInt(document.getElementById('restock-qty').value) || 0;
+        const p = DB_PRODUCTS.find(x => x.barcode === currentBarcode);
         if(p) {
-            document.getElementById('inv-name').value = p.name;
-            document.getElementById('inv-price').value = p.price;
-            document.getElementById('inv-cost').value = p.cost;
-            document.getElementById('inv-stock').value = p.stock;
-            document.getElementById('inv-threshold').value = p.threshold;
-            document.getElementById('inv-expiry').value = p.expiry;
+            p.stock += addQty;
+            saveDB();
+            alert(`已入庫 ${addQty} 個，目前庫存 ${p.stock}`);
+            // 重置
+            document.getElementById('panel-restock').style.display = 'none';
+            document.getElementById('inv-placeholder').style.display = 'block';
+            document.getElementById('manual-code-inventory').value = '';
+        }
+    }
+
+    function enableEditMode() {
+        // 從補貨模式切換到編輯模式
+        document.getElementById('panel-restock').style.display = 'none';
+        showEditForm(currentBarcode, false);
+    }
+
+    function showEditForm(code, isNew) {
+        document.getElementById('panel-edit').style.display = 'block';
+        document.getElementById('edit-title').innerText = isNew ? "新商品建檔" : "修改商品資料";
+        document.getElementById('edit-barcode').value = code;
+
+        const p = DB_PRODUCTS.find(x => x.barcode === code);
+        if(p) {
+            document.getElementById('edit-name').value = p.name;
+            document.getElementById('edit-price').value = p.price;
+            document.getElementById('edit-cost').value = p.cost;
+            document.getElementById('edit-stock').value = p.stock;
+            document.getElementById('edit-threshold').value = p.threshold;
+            document.getElementById('edit-expiry').value = p.expiry;
             if(p.img) {
-                document.getElementById('inv-img-preview').src = p.img;
-                document.getElementById('inv-img-preview').style.display = 'block';
-                document.getElementById('inv-img-icon').style.display = 'none';
+                document.getElementById('edit-img-preview').src = p.img;
+                document.getElementById('edit-img-preview').style.display = 'block';
+                document.getElementById('edit-img-icon').style.display = 'none';
             } else {
-                resetInvImg();
+                resetImgUI();
             }
         } else {
-            // 新商品
-            document.getElementById('inv-name').value = "";
-            document.getElementById('inv-price').value = "";
-            document.getElementById('inv-cost').value = "";
-            document.getElementById('inv-stock').value = "";
-            document.getElementById('inv-threshold').value = 5;
-            document.getElementById('inv-expiry').value = "";
-            resetInvImg();
+            // 清空表單
+            document.getElementById('edit-name').value = "";
+            document.getElementById('edit-price').value = "";
+            document.getElementById('edit-cost').value = "";
+            document.getElementById('edit-stock').value = "";
+            document.getElementById('edit-threshold').value = 5;
+            document.getElementById('edit-expiry').value = "";
+            resetImgUI();
         }
     }
 
-    function resetInvImg() {
-        document.getElementById('inv-img-preview').src = "";
-        document.getElementById('inv-img-preview').style.display = 'none';
-        document.getElementById('inv-img-icon').style.display = 'block';
+    function resetImgUI() {
+        document.getElementById('edit-img-preview').src = "";
+        document.getElementById('edit-img-preview').style.display = 'none';
+        document.getElementById('edit-img-icon').style.display = 'block';
     }
 
-    function saveProduct() {
-        const code = document.getElementById('inv-barcode').value;
-        if(!code) return alert('請先輸入條碼');
-        
-        const imgSrc = document.getElementById('inv-img-preview').src;
-        const hasImg = document.getElementById('inv-img-preview').style.display !== 'none';
-
-        const newP = {
-            barcode: code,
-            name: document.getElementById('inv-name').value || "未命名商品",
-            price: Number(document.getElementById('inv-price').value),
-            cost: Number(document.getElementById('inv-cost').value),
-            stock: Number(document.getElementById('inv-stock').value),
-            threshold: Number(document.getElementById('inv-threshold').value),
-            expiry: document.getElementById('inv-expiry').value,
-            img: hasImg ? imgSrc : "",
-            sold: 0
-        };
-
-        const idx = DB_PRODUCTS.findIndex(p => p.barcode === code);
-        if(idx >= 0) {
-            newP.sold = DB_PRODUCTS[idx].sold;
-            DB_PRODUCTS[idx] = newP;
-        } else {
-            DB_PRODUCTS.push(newP);
-        }
-        
-        saveDB();
-        alert('儲存成功');
-        document.getElementById('inv-search').value = "";
-        document.getElementById('edit-form').style.display = 'none';
+    function cancelEdit() {
+        document.getElementById('panel-edit').style.display = 'none';
         document.getElementById('inv-placeholder').style.display = 'block';
     }
 
+    // *** 圖片壓縮功能 (Canvas) ***
+    function compressAndPreview(input) {
+        if(!input.files || !input.files[0]) return;
+        
+        const file = input.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // 設定縮放 (最大寬度 300px，夠列表用了)
+                const maxWidth = 300;
+                const scale = maxWidth / img.width;
+                const width = maxWidth;
+                const height = img.height * scale;
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // 轉回 Base64 (JPEG, 品質 0.7)
+                const compressedData = canvas.toDataURL('image/jpeg', 0.7);
+                
+                document.getElementById('edit-img-preview').src = compressedData;
+                document.getElementById('edit-img-preview').style.display = 'block';
+                document.getElementById('edit-img-icon').style.display = 'none';
+            };
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function saveProductFull() {
+        const code = document.getElementById('edit-barcode').value;
+        const name = document.getElementById('edit-name').value;
+        if(!name) return alert('請輸入商品名稱');
+
+        const imgSrc = document.getElementById('edit-img-preview').src;
+        const hasImg = document.getElementById('edit-img-preview').style.display !== 'none';
+
+        const newItem = {
+            barcode: code,
+            name: name,
+            price: Number(document.getElementById('edit-price').value),
+            cost: Number(document.getElementById('edit-cost').value),
+            stock: Number(document.getElementById('edit-stock').value),
+            threshold: Number(document.getElementById('edit-threshold').value),
+            expiry: document.getElementById('edit-expiry').value,
+            img: hasImg ? imgSrc : ""
+        };
+
+        const idx = DB_PRODUCTS.findIndex(p => p.barcode === code);
+        if(idx >= 0) DB_PRODUCTS[idx] = newItem;
+        else DB_PRODUCTS.push(newItem);
+
+        saveDB();
+        alert('儲存成功');
+        cancelEdit();
+    }
+    
     function deleteProduct() {
-        const code = document.getElementById('inv-barcode').value;
-        if(confirm(`確定刪除條碼 ${code} 的商品資料？`)) {
+        const code = document.getElementById('edit-barcode').value;
+        if(confirm('確定刪除此商品？')) {
             const idx = DB_PRODUCTS.findIndex(p => p.barcode === code);
             if(idx >= 0) {
                 DB_PRODUCTS.splice(idx, 1);
                 saveDB();
                 alert('已刪除');
-                document.getElementById('edit-form').style.display = 'none';
-                document.getElementById('inv-placeholder').style.display = 'block';
+                cancelEdit();
             }
         }
     }
 
-    // --- 績效分析 (真實數據運算) ---
-    let chartInstance = null;
-    
-    function loadStats(period) {
-        // UI Button State
-        document.querySelectorAll('#page-performance .btn-sm').forEach(b => b.classList.replace('btn-primary','btn-outline'));
-        document.querySelectorAll('#page-performance .btn-sm').forEach(b => b.classList.remove('active')); // remove custom active
-        document.getElementById(`btn-stat-${period}`).classList.replace('btn-outline','btn-primary');
-
-        const now = new Date();
-        let filteredTx = [];
-        let labels = [];
-        let dataRevenue = [];
-
-        // 1. 過濾數據
-        if (period === 'day') {
-            const todayStr = now.toISOString().split('T')[0];
-            filteredTx = DB_TRANSACTIONS.filter(t => t.time.startsWith(todayStr));
-            labels = ['今日'];
-            dataRevenue = [filteredTx.reduce((sum, t) => sum + t.total, 0)];
-        } 
-        else if (period === 'week') {
-            // 簡單取過去7天
-            for(let i=6; i>=0; i--) {
-                const d = new Date(); d.setDate(now.getDate() - i);
-                const dStr = d.toISOString().split('T')[0];
-                const label = `${d.getMonth()+1}/${d.getDate()}`;
-                const dailyTotal = DB_TRANSACTIONS
-                    .filter(t => t.time.startsWith(dStr))
-                    .reduce((sum, t) => sum + t.total, 0);
-                
-                labels.push(label);
-                dataRevenue.push(dailyTotal);
-                filteredTx = filteredTx.concat(DB_TRANSACTIONS.filter(t => t.time.startsWith(dStr)));
-            }
+    // --- 音效與其他 ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function beep(isError = false) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        if(isError) {
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.type = 'sawtooth';
+            gain.gain.value = 0.2;
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        } else {
+            osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+            gain.gain.value = 0.1;
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
         }
-        else {
-            // 全部 (依月份簡化)
-            filteredTx = DB_TRANSACTIONS;
-            // 這裡做個簡單的月聚合
-            const monthMap = {};
-            filteredTx.forEach(t => {
-                const m = t.time.substring(0, 7); // YYYY-MM
-                monthMap[m] = (monthMap[m] || 0) + t.total;
-            });
-            labels = Object.keys(monthMap).sort();
-            dataRevenue = labels.map(m => monthMap[m]);
-        }
+    }
 
-        // 2. 計算總額
-        const totalRev = filteredTx.reduce((acc, t) => acc + t.total, 0);
-        const totalProfit = filteredTx.reduce((acc, t) => acc + t.profit, 0);
+    // --- 績效圖表 ---
+    let chartInstance;
+    function loadStats() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayTx = DB_TRANSACTIONS.filter(t => t.time.startsWith(todayStr));
+        
+        const rev = todayTx.reduce((a, b) => a + b.total, 0);
+        const cost = todayTx.reduce((a, b) => a + b.cost, 0);
+        
+        document.getElementById('stat-rev').innerText = `$${rev}`;
+        document.getElementById('stat-profit').innerText = `$${rev - cost}`;
 
-        document.getElementById('stat-revenue').innerText = `$${totalRev}`;
-        document.getElementById('stat-profit').innerText = `$${totalProfit}`;
-
-        // 3. 繪製圖表
+        // Chart (顯示最近5筆交易供參考)
         const ctx = document.getElementById('salesChart').getContext('2d');
         if(chartInstance) chartInstance.destroy();
         
+        const recentTx = DB_TRANSACTIONS.slice(-5);
         chartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: labels,
+                labels: recentTx.map(t => t.time.substring(11, 16)), // HH:MM
                 datasets: [{
-                    label: '營業額',
-                    data: dataRevenue,
-                    backgroundColor: '#2E7D32',
-                    borderRadius: 4
+                    label: '最近交易金額',
+                    data: recentTx.map(t => t.total),
+                    backgroundColor: '#2E7D32'
                 }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true } }
             }
         });
     }
-
-    // --- 倉儲監控 ---
-    function renderWarehouse(mode) {
-        // Button Styles
-        document.getElementById('tab-alert').style.fontWeight = mode==='alert'?'bold':'normal';
-        document.getElementById('tab-ranking').style.fontWeight = mode==='ranking'?'bold':'normal';
-
-        const div = document.getElementById('warehouse-list');
-        div.innerHTML = '';
-        
-        let list = [];
-        if(mode === 'ranking') {
-            list = [...DB_PRODUCTS].sort((a,b) => b.sold - a.sold); // 銷量高到低
-        } else {
-            // 庫存低於預警 OR 過期 (假設今天 > expiry)
-            const today = new Date().toISOString().split('T')[0];
-            list = DB_PRODUCTS.filter(p => p.stock <= p.threshold || (p.expiry && p.expiry <= today));
-        }
-
-        if(list.length === 0) div.innerHTML = '<p style="text-align:center;color:#999;margin-top:20px;">目前狀況良好，無資料。</p>';
-
-        list.forEach(p => {
-            const isLow = p.stock <= p.threshold;
-            const isExp = p.expiry && p.expiry <= new Date().toISOString().split('T')[0];
-            
-            let statusBadge = '';
-            if(isExp) statusBadge += `<span style="background:#d32f2f; color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-right:5px;">過期/即期</span>`;
-            if(isLow) statusBadge += `<span style="background:#FF9800; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">補貨</span>`;
-
-            div.innerHTML += `
-                <div class="card" style="padding:12px; margin-bottom:10px; display:flex; align-items:center;">
-                    <div style="flex:1">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                            <b style="font-size:16px;">${p.name}</b>
-                            <span style="font-weight:bold; color:${isLow||isExp?'#d32f2f':'#2E7D32'}">庫存: ${p.stock}</span>
-                        </div>
-                        <div style="font-size:12px; color:#666; display:flex; align-items:center;">
-                            ${statusBadge}
-                            <span style="margin-left:auto;">已售: ${p.sold}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
+    
+    function exportData() {
+        let csv = "\uFEFF時間,總額,方式\n";
+        DB_TRANSACTIONS.forEach(t => {
+            csv += `${t.time},${t.total},${t.method}\n`;
         });
-    }
-
-    // --- 匯出功能 (CSV & JSONL) ---
-    function exportCSV() {
-        // 產生交易明細表 (每項商品一行)
-        let csvContent = "\uFEFF"; // BOM for Excel encoding
-        csvContent += "交易ID,時間,商品條碼,商品名稱,單價,成本,數量,小計,毛利,付款方式\n";
-
-        DB_TRANSACTIONS.forEach(tx => {
-            tx.items.forEach(item => {
-                const subtotal = item.price * item.qty;
-                const costTotal = item.cost * item.qty;
-                const profit = subtotal - costTotal;
-                
-                // 處理可能包含逗號的字串
-                const safeName = `"${item.name.replace(/"/g, '""')}"`;
-                
-                const row = [
-                    tx.id,
-                    tx.time,
-                    `'${item.barcode}`, // Excel 防轉科學記號
-                    safeName,
-                    item.price,
-                    item.cost,
-                    item.qty,
-                    subtotal,
-                    profit,
-                    tx.method
-                ].join(",");
-                csvContent += row + "\n";
-            });
-        });
-
-        downloadFile(csvContent, "transaction_details.csv", "text/csv");
-    }
-
-    function exportJSONL() {
-        const content = DB_TRANSACTIONS.map(t => JSON.stringify(t)).join('\n');
-        downloadFile(content, "backup_data.jsonl", "application/json");
-    }
-
-    function downloadFile(content, fileName, mimeType) {
+        const blob = new Blob([csv], { type: 'text/csv' });
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([content], {type: mimeType}));
-        a.download = fileName;
+        a.href = URL.createObjectURL(blob);
+        a.download = 'sales.csv';
         a.click();
     }
-
-    function clearAllData() {
-        if(confirm('警告！此動作將清除所有商品與交易紀錄，且無法復原。\n\n確定要重置系統嗎？')) {
-            localStorage.removeItem('sma_v2_products');
-            localStorage.removeItem('sma_v2_transactions');
+    
+    function clearData() {
+        if(confirm('確定清除所有資料？')) {
+            localStorage.clear();
             location.reload();
         }
     }
 
-    // 啟動與初始化
+    // 初始化
     switchPage('page-checkout', '結帳櫃台');
-
 </script>
 </body>
 </html>
