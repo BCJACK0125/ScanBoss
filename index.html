@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>傳統超市智慧掃碼助手 (MVP)</title>
+    <title>傳統超市智慧掃碼助手 V2</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -13,496 +13,479 @@
         :root {
             --primary-color: #2E7D32; /* 森林綠 */
             --accent-color: #FF9800; /* 琥珀橘 */
-            --bg-color: #f4f4f4;
+            --bg-color: #f8f9fa;
             --white: #ffffff;
-            --text-main: #333333;
+            --text-main: #2c3e50;
             --border-color: #e0e0e0;
             --danger-color: #d32f2f;
-            --nav-height: 60px;
+            --nav-height: 65px;
         }
 
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             background-color: var(--bg-color);
             color: var(--text-main);
             height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            display: flex; flex-direction: column; overflow: hidden;
         }
 
         /* 頂部標題 */
         header {
             background-color: var(--primary-color);
             color: var(--white);
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: bold;
+            height: 55px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 15px;
+            font-size: 18px; font-weight: bold;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             z-index: 100;
         }
+        .status-dot { width: 10px; height: 10px; background: #4CAF50; border-radius: 50%; border: 2px solid white; }
 
-        /* 主要內容區 - 滾動區域 */
+        /* 主要內容區 */
         main {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            padding-bottom: 80px; /* 預留底部導航空間 */
+            flex: 1; overflow-y: auto; padding: 15px;
+            padding-bottom: 90px; /* 底部導航空間 */
             position: relative;
         }
 
-        /* 頁面切換控制 */
-        .page {
-            display: none;
-            animation: fadeIn 0.3s ease-out;
-        }
-        .page.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .page { display: none; animation: fadeIn 0.25s ease-out; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* 底部導航欄 */
         nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
+            position: fixed; bottom: 0; left: 0; width: 100%;
             height: var(--nav-height);
             background-color: var(--white);
             border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
+            display: flex; justify-content: space-around; align-items: center;
             z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom);
             box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-            padding-bottom: env(safe-area-inset-bottom); /* 適配 iPhone 底部橫條 */
         }
 
         .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #999;
-            font-size: 11px;
-            width: 20%;
-            height: 100%;
-            cursor: pointer;
-            transition: color 0.2s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #999; font-size: 10px; width: 20%; height: 100%;
+            cursor: pointer; transition: color 0.2s;
         }
+        .nav-item i { font-size: 22px; margin-bottom: 4px; }
+        .nav-item.active { color: var(--primary-color); font-weight: bold; }
 
-        .nav-item i {
-            font-size: 20px;
-            margin-bottom: 4px;
-        }
-
-        .nav-item.active {
-            color: var(--primary-color);
-        }
-
-        /* --- UI 元件樣式 --- */
+        /* UI 元件 */
         .btn {
-            border: none;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            text-align: center;
+            border: none; border-radius: 8px; padding: 14px;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+            width: 100%; text-align: center; display: block;
+            transition: opacity 0.2s;
         }
-        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn:active { opacity: 0.8; }
+        .btn-primary { background-color: var(--primary-color); color: white; box-shadow: 0 4px 6px rgba(46, 125, 50, 0.2); }
         .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-outline { background-color: transparent; border: 1px solid #ccc; color: #555; }
-        
+        .btn-sm { padding: 8px 12px; font-size: 14px; width: auto; }
+
         input, select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 16px;
-            margin-bottom: 15px;
-            background: white;
+            width: 100%; padding: 12px; border: 1px solid #ddd;
+            border-radius: 8px; font-size: 16px; margin-bottom: 15px;
+            background: white; appearance: none;
         }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; font-size: 14px; }
 
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-            font-size: 14px;
-        }
-
-        /* 掃描區 */
+        /* 掃描區與閃爍特效 */
         #scanner-wrapper {
-            width: 100%;
-            height: 250px;
-            background: black;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 15px;
-            position: relative;
+            width: 100%; height: 260px; background: black;
+            border-radius: 12px; overflow: hidden; margin-bottom: 15px;
+            position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
-        #reader { width: 100%; height: 100%; }
+        #reader { width: 100%; height: 100%; object-fit: cover; }
+        .scan-flash {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(46, 125, 50, 0.5); z-index: 10;
+            display: none; pointer-events: none;
+        }
 
         /* 卡片樣式 */
         .card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            margin-bottom: 15px;
+            background: white; padding: 15px; border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 15px;
         }
 
-        /* 購物清單 */
+        /* 購物清單優化 */
         .cart-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid #f0f0f0;
         }
         .cart-item:last-child { border-bottom: none; }
-        .cart-qty {
-            background: #eee;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 14px;
-            margin-left: 5px;
+        .qty-control {
+            display: flex; align-items: center; gap: 10px;
+            background: #f5f5f5; padding: 4px; border-radius: 20px;
+        }
+        .qty-btn {
+            width: 28px; height: 28px; border-radius: 50%; border: none;
+            background: white; color: var(--text-main); font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         /* 績效卡片 */
-        .stat-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        .stat-box {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .stat-val { font-size: 20px; font-weight: bold; color: var(--primary-color); }
-        .stat-label { font-size: 12px; color: #666; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .stat-box { background: white; padding: 20px 15px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .stat-val { font-size: 24px; font-weight: bold; color: var(--primary-color); margin-top: 5px; }
+        .stat-label { font-size: 13px; color: #777; font-weight: 500; }
 
         /* Modal */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);
+            display: none; justify-content: center; align-items: center;
             z-index: 200;
         }
         .modal-box {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            width: 85%;
-            max-width: 350px;
+            background: white; padding: 25px; border-radius: 16px;
+            width: 85%; max-width: 350px; animation: scaleUp 0.2s;
         }
+        @keyframes scaleUp { from { transform: scale(0.9); } to { transform: scale(1); } }
+
+        /* 圖片預覽 */
+        .img-preview { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; background: #eee; }
     </style>
 </head>
 <body>
 
-<header id="header-title">結帳櫃台</header>
+<header>
+    <div id="header-title">結帳櫃台</div>
+    <div style="display:flex; align-items:center; font-size:12px;">
+        <span class="status-dot"></span>&nbsp;連線中
+    </div>
+</header>
 
 <main>
+    <!-- 1. 結帳頁面 -->
     <section id="page-checkout" class="page active">
         <div id="scanner-wrapper">
             <div id="reader"></div>
+            <div id="scan-flash" class="scan-flash"></div>
         </div>
 
         <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-            <input type="text" id="manual-code" placeholder="手動輸入條碼" style="margin-bottom: 0; flex: 1;">
+            <input type="number" id="manual-code" placeholder="手動輸入條碼" style="margin-bottom: 0; flex: 1;">
             <button class="btn-primary" style="width: auto; padding: 0 20px;" onclick="manualAdd()">
                 <i class="fas fa-plus"></i>
             </button>
         </div>
 
-        <div class="card">
-            <div id="cart-list" style="min-height: 100px;">
-                <p style="text-align: center; color: #999; margin-top: 30px;">請掃描商品</p>
+        <div class="card" style="min-height: 200px; display: flex; flex-direction: column;">
+            <div id="cart-list" style="flex:1;">
+                <div style="text-align: center; color: #aaa; margin-top: 40px; display:flex; flex-direction:column; align-items:center;">
+                    <i class="fas fa-barcode" style="font-size: 40px; margin-bottom: 10px;"></i>
+                    請掃描或輸入商品
+                </div>
             </div>
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 2px dashed #eee; display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 18px; font-weight: bold;">總計</span>
-                <span id="cart-total" style="font-size: 24px; font-weight: bold; color: var(--primary-color);">$0</span>
+            
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 2px dashed #eee;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <span style="font-size: 16px; color: #555;">數量: <span id="total-qty">0</span></span>
+                    <span style="font-size: 16px; color: #555;">總成本: <span id="total-cost" style="font-size:12px">$0</span></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 20px; font-weight: bold;">應收金額</span>
+                    <span id="cart-total" style="font-size: 32px; font-weight: bold; color: var(--primary-color);">$0</span>
+                </div>
             </div>
         </div>
 
-        <button class="btn btn-primary" onclick="showCheckoutModal()">結帳 (Pay)</button>
+        <button class="btn btn-primary" style="height: 60px; font-size: 20px;" onclick="showCheckoutModal()">
+            <i class="fas fa-coins"></i> 結帳 (Pay)
+        </button>
     </section>
 
+    <!-- 2. 進貨管理頁面 -->
     <section id="page-inventory" class="page">
         <div class="card">
+            <h3 style="margin-top:0">商品查詢/建檔</h3>
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <input type="text" id="inv-search" placeholder="掃描或輸入條碼" style="margin:0; flex:1">
                 <button class="btn btn-primary" style="width: auto;" onclick="searchInventory()">查詢</button>
             </div>
+            
             <hr style="border:0; border-top:1px solid #eee; margin: 15px 0;">
             
-            <h3 id="inv-mode-title" style="margin-top:0">商品編輯</h3>
-            <input type="hidden" id="inv-barcode">
-            
-            <label>商品名稱</label>
-            <input type="text" id="inv-name">
-            
-            <div style="display: flex; gap: 10px;">
-                <div style="flex:1">
-                    <label>售價</label>
-                    <input type="number" id="inv-price">
+            <div id="edit-form" style="display:none;">
+                <input type="hidden" id="inv-barcode">
+                
+                <div style="display:flex; gap:10px; align-items:center; margin-bottom:15px;">
+                    <div style="width: 70px; height: 70px; background: #f0f0f0; border-radius: 8px; overflow: hidden; position: relative;">
+                        <img id="inv-img-preview" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
+                        <i class="fas fa-camera" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#999;" id="inv-img-icon"></i>
+                    </div>
+                    <div style="flex:1;">
+                        <label class="btn btn-outline btn-sm" style="margin-bottom:0; text-align:center;">
+                            <i class="fas fa-upload"></i> 上傳照片
+                            <input type="file" id="inv-img-file" accept="image/*" style="display:none;" onchange="handleImageUpload(this)">
+                        </label>
+                    </div>
                 </div>
-                <div style="flex:1">
-                    <label>進貨成本</label>
-                    <input type="number" id="inv-cost">
+
+                <label>商品名稱</label>
+                <input type="text" id="inv-name" placeholder="例如：可口可樂 600ml">
+                
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex:1">
+                        <label>售價 (元)</label>
+                        <input type="number" id="inv-price" placeholder="0">
+                    </div>
+                    <div style="flex:1">
+                        <label>進貨成本 (元)</label>
+                        <input type="number" id="inv-cost" placeholder="0">
+                    </div>
                 </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex:1">
+                        <label>現有庫存</label>
+                        <input type="number" id="inv-stock" placeholder="0">
+                    </div>
+                    <div style="flex:1">
+                        <label style="color:var(--accent-color)">低庫存預警值</label>
+                        <input type="number" id="inv-threshold" value="5">
+                    </div>
+                </div>
+
+                <label>有效日期 (即期品追蹤)</label>
+                <input type="date" id="inv-expiry">
+
+                <button class="btn btn-primary" onclick="saveProduct()">儲存商品資訊</button>
+                <button class="btn btn-danger" style="margin-top:10px;" onclick="deleteProduct()">刪除商品</button>
             </div>
-
-            <div style="display: flex; gap: 10px;">
-                <div style="flex:1">
-                    <label>庫存量</label>
-                    <input type="number" id="inv-stock">
-                </div>
-                <div style="flex:1">
-                    <label>預警值</label>
-                    <input type="number" id="inv-threshold" value="5">
-                </div>
+            <div id="inv-placeholder" style="text-align:center; color:#999; padding:20px;">
+                請輸入條碼開始
             </div>
-
-            <label>有效日期</label>
-            <input type="date" id="inv-expiry">
-
-            <button class="btn btn-primary" onclick="saveProduct()">儲存商品</button>
         </div>
     </section>
 
+    <!-- 3. 營收績效頁面 -->
     <section id="page-performance" class="page">
-        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
-            <button class="btn btn-outline" style="width: auto; padding: 8px 20px;" onclick="loadStats('day')">日</button>
-            <button class="btn btn-outline" style="width: auto; padding: 8px 20px;" onclick="loadStats('week')">週</button>
-            <button class="btn btn-outline" style="width: auto; padding: 8px 20px;" onclick="loadStats('month')">月</button>
+        <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 15px;">
+            <button class="btn btn-outline btn-sm" onclick="loadStats('day')" id="btn-stat-day">今日</button>
+            <button class="btn btn-outline btn-sm" onclick="loadStats('week')" id="btn-stat-week">本週</button>
+            <button class="btn btn-outline btn-sm" onclick="loadStats('all')" id="btn-stat-all">全部</button>
         </div>
 
         <div class="stat-grid">
             <div class="stat-box">
-                <div class="stat-label">營業額</div>
+                <div class="stat-label">總營業額</div>
                 <div class="stat-val" id="stat-revenue">$0</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">淨利潤</div>
+                <div class="stat-label">淨利潤 (毛利)</div>
                 <div class="stat-val" id="stat-profit" style="color: var(--accent-color);">$0</div>
             </div>
         </div>
 
-        <div class="card" style="margin-top: 15px; height: 300px;">
-            <canvas id="salesChart"></canvas>
-        </div>
-    </section>
-
-    <section id="page-warehouse" class="page">
-        <div style="display: flex; margin-bottom: 10px; background: #ddd; border-radius: 8px;">
-            <button class="btn" style="background:transparent; flex:1;" onclick="renderWarehouse('expiry')">即期/缺貨</button>
-            <button class="btn" style="background:transparent; flex:1;" onclick="renderWarehouse('ranking')">銷售排行</button>
-        </div>
-        <div id="warehouse-list">
+        <div class="card" style="margin-top: 15px;">
+            <h3>銷售趨勢</h3>
+            <div style="height: 250px;">
+                <canvas id="salesChart"></canvas>
             </div>
+        </div>
     </section>
 
+    <!-- 4. 倉儲監控頁面 -->
+    <section id="page-warehouse" class="page">
+        <div style="display: flex; margin-bottom: 15px; background: #e0e0e0; border-radius: 8px; padding: 4px;">
+            <button class="btn" style="background:transparent; flex:1; padding:8px;" onclick="renderWarehouse('alert')" id="tab-alert">缺貨/即期</button>
+            <button class="btn" style="background:transparent; flex:1; padding:8px;" onclick="renderWarehouse('ranking')" id="tab-ranking">熱銷排行</button>
+        </div>
+        <div id="warehouse-list"></div>
+    </section>
+
+    <!-- 5. 設定與匯出頁面 -->
     <section id="page-settings" class="page">
         <div class="card">
-            <h3>資料匯出</h3>
-            <p style="color: #666; font-size: 14px;">下載報表以進行備份或Excel分析。</p>
-            <button class="btn btn-primary" style="margin-bottom: 10px;" onclick="exportData('jsonl')">匯出交易總表 (JSONL)</button>
-            <button class="btn btn-primary" style="background-color: #1976D2;" onclick="exportData('csv')">匯出明細報表 (Excel/CSV)</button>
+            <h3><i class="fas fa-file-export"></i> 報表匯出</h3>
+            <p style="color: #666; font-size: 13px; margin-bottom:15px;">
+                產生符合會計需求的 CSV 明細表或系統備份用的 JSONL 檔。
+            </p>
+            <button class="btn btn-primary" style="margin-bottom: 10px; background-color: #1565C0;" onclick="exportCSV()">
+                匯出交易明細 (Excel/CSV)
+            </button>
+            <button class="btn btn-outline" onclick="exportJSONL()">
+                匯出系統備份 (JSONL)
+            </button>
         </div>
 
         <div class="card">
-            <h3 style="color: var(--danger-color);">危險區域</h3>
-            <button class="btn btn-danger" onclick="clearAllData()">清空所有資料 (重置)</button>
+            <h3 style="color: var(--danger-color);"><i class="fas fa-exclamation-triangle"></i> 系統管理</h3>
+            <p style="color: #666; font-size: 13px;">清除所有商品與交易紀錄，此動作無法復原。</p>
+            <button class="btn btn-danger" onclick="clearAllData()">重置所有資料</button>
+        </div>
+        
+        <div style="text-align:center; color:#aaa; font-size:12px; margin-top:20px;">
+            Traditional Supermarket Assistant V2.0<br>
+            Designed for Efficiency
         </div>
     </section>
 </main>
 
 <nav>
     <div class="nav-item active" onclick="switchPage('page-checkout', '結帳櫃台')">
-        <i class="fas fa-cash-register"></i>
-        <span>結帳</span>
+        <i class="fas fa-cash-register"></i><span>結帳</span>
     </div>
     <div class="nav-item" onclick="switchPage('page-inventory', '進貨管理')">
-        <i class="fas fa-box-open"></i>
-        <span>進貨</span>
+        <i class="fas fa-box-open"></i><span>進貨</span>
     </div>
     <div class="nav-item" onclick="switchPage('page-performance', '營收分析')">
-        <i class="fas fa-chart-line"></i>
-        <span>績效</span>
+        <i class="fas fa-chart-line"></i><span>績效</span>
     </div>
     <div class="nav-item" onclick="switchPage('page-warehouse', '倉儲監控')">
-        <i class="fas fa-warehouse"></i>
-        <span>倉儲</span>
+        <i class="fas fa-warehouse"></i><span>倉儲</span>
     </div>
     <div class="nav-item" onclick="switchPage('page-settings', '系統設定')">
-        <i class="fas fa-cog"></i>
-        <span>設定</span>
+        <i class="fas fa-cog"></i><span>設定</span>
     </div>
 </nav>
 
+<!-- 結帳確認 Modal -->
 <div id="modal-checkout" class="modal-overlay">
     <div class="modal-box">
-        <h3>確認結帳</h3>
-        <p>總金額: <span id="modal-total-display" style="font-weight:bold; font-size: 20px;"></span></p>
+        <h3><i class="fas fa-check-circle" style="color:var(--primary-color)"></i> 確認結帳</h3>
+        <p style="text-align:center; margin: 20px 0;">總金額<br><span id="modal-total-display" style="font-weight:bold; font-size: 36px; color:var(--primary-color)"></span></p>
+        
         <label>付款方式</label>
         <select id="pay-method">
-            <option value="現金">現金</option>
+            <option value="現金">現金 (Cash)</option>
             <option value="LinePay">Line Pay</option>
-            <option value="賒帳">賒帳</option>
+            <option value="賒帳">賒帳 (Credit)</option>
         </select>
-        <div style="display: flex; gap: 10px; margin-top: 15px;">
+        
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
             <button class="btn btn-outline" onclick="closeModal()">取消</button>
-            <button class="btn btn-primary" onclick="processCheckout()">確認</button>
+            <button class="btn btn-primary" onclick="processCheckout()">確認收款</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- 資料庫 (模擬) ---
-    let DB_PRODUCTS = JSON.parse(localStorage.getItem('sma_products')) || [];
-    let DB_TRANSACTIONS = JSON.parse(localStorage.getItem('sma_transactions')) || [];
+    // --- 資料庫初始化 ---
+    let DB_PRODUCTS = JSON.parse(localStorage.getItem('sma_v2_products')) || [];
+    let DB_TRANSACTIONS = JSON.parse(localStorage.getItem('sma_v2_transactions')) || [];
     
+    // 預設資料 (若為空)
+    if(DB_PRODUCTS.length === 0) {
+        DB_PRODUCTS = [
+            { barcode: "1", name: "測試商品-可樂", price: 35, cost: 20, stock: 50, threshold: 10, expiry: "2025-12-31", sold: 0, img: "" },
+            { barcode: "2", name: "測試商品-泡麵", price: 25, cost: 15, stock: 5, threshold: 10, expiry: "2023-10-01", sold: 0, img: "" }
+        ];
+        saveDB();
+    }
+
     // 購物車暫存
     let currentCart = [];
     
     // 掃描器全域變數
     let html5QrcodeScanner = null;
     let isScannerRunning = false;
-    let isProcessingScan = false; // 關鍵修正：防止重複嗶聲的鎖
+    let isProcessingScan = false;
 
-    // 初始化範例資料
-    if(DB_PRODUCTS.length === 0) {
-        DB_PRODUCTS = [
-            { barcode: "111", name: "可口可樂", price: 35, cost: 20, stock: 50, threshold: 10, expiry: "2025-12-31", sold: 0 },
-            { barcode: "222", name: "科學麵", price: 10, cost: 5, stock: 5, threshold: 10, expiry: "2023-10-01", sold: 0 }
-        ];
-        saveDB();
-    }
+    // 音效 Context
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // --- 核心功能函數 ---
 
     function saveDB() {
-        localStorage.setItem('sma_products', JSON.stringify(DB_PRODUCTS));
-        localStorage.setItem('sma_transactions', JSON.stringify(DB_TRANSACTIONS));
+        localStorage.setItem('sma_v2_products', JSON.stringify(DB_PRODUCTS));
+        localStorage.setItem('sma_v2_transactions', JSON.stringify(DB_TRANSACTIONS));
     }
 
-    // --- 音效 ---
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function beep() {
         if (audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.frequency.value = 1200;
-        gain.gain.value = 0.1;
+        osc.frequency.value = 1200; // 更高頻的嗶聲
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.15);
         osc.start();
-        setTimeout(() => osc.stop(), 150);
+        osc.stop(audioCtx.currentTime + 0.15);
         if(navigator.vibrate) navigator.vibrate(50);
     }
 
-    // --- 頁面導航邏輯 ---
+    function flashScreen() {
+        const flash = document.getElementById('scan-flash');
+        flash.style.display = 'block';
+        setTimeout(() => { flash.style.display = 'none'; }, 200);
+    }
+
+    // --- 頁面導航 ---
     function switchPage(pageId, title) {
-        // 1. UI 切換
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
         document.getElementById('header-title').innerText = title;
 
-        // 2. 底部導航狀態更新
         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-        // 簡單的比對方式來亮起按鈕
         const navIndex = ['page-checkout','page-inventory','page-performance','page-warehouse','page-settings'].indexOf(pageId);
         if(navIndex !== -1) document.querySelectorAll('.nav-item')[navIndex].classList.add('active');
 
-        // 3. 相機資源管理 (重要！)
+        // 相機控制
         if (pageId === 'page-checkout') {
             startScanner();
         } else {
-            stopScanner(); // 離開結帳頁就關閉相機
+            stopScanner();
         }
 
-        // 4. 頁面初始化數據
+        // 頁面初始化
         if (pageId === 'page-performance') loadStats('day');
-        if (pageId === 'page-warehouse') renderWarehouse('expiry');
+        if (pageId === 'page-warehouse') renderWarehouse('alert');
     }
 
-    // --- 掃描功能 (修正重複嗶聲) ---
+    // --- 掃描功能 ---
     function startScanner() {
         if (isScannerRunning) return;
-        
         html5QrcodeScanner = new Html5Qrcode("reader");
-        const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+        const config = { fps: 10, qrbox: { width: 250, height: 150 }, aspectRatio: 1.0 };
         
         html5QrcodeScanner.start({ facingMode: "environment" }, config, (decodedText) => {
-            // 掃描成功 Callback
             handleScanInput(decodedText);
-        }).then(() => {
-            isScannerRunning = true;
-        }).catch(err => {
-            console.log("相機啟動失敗或無權限", err);
-        });
+        }).then(() => { isScannerRunning = true; })
+          .catch(err => console.log("Camera Error", err));
     }
 
     function stopScanner() {
         if (html5QrcodeScanner && isScannerRunning) {
             html5QrcodeScanner.stop().then(() => {
-                html5QrcodeScanner.clear();
-                isScannerRunning = false;
+                html5QrcodeScanner.clear(); isScannerRunning = false;
             }).catch(err => console.error(err));
         }
     }
 
     function handleScanInput(code) {
-        // 如果正在處理中（例如跳出視窗問你要不要建檔），直接忽略這次掃描
         if (isProcessingScan) return;
-        
-        // 鎖定狀態，防止連續觸發
         isProcessingScan = true;
         
         const product = DB_PRODUCTS.find(p => p.barcode === code);
         
         if (product) {
             beep();
+            flashScreen();
             addToCart(product);
-            // 成功掃描後，延遲 1 秒再允許掃下一次，避免手抖連掃
-            setTimeout(() => { isProcessingScan = false; }, 1000);
+            setTimeout(() => { isProcessingScan = false; }, 800); // 防連掃
         } else {
-            // 商品不存在
             beep();
-            // 這裡直接暫停相機，避免背景繼續掃描
             if (html5QrcodeScanner) html5QrcodeScanner.pause(); 
-            
             if (confirm(`未找到商品 (${code})，是否前往建檔？`)) {
-                // 去建檔
                 switchPage('page-inventory', '進貨管理');
                 document.getElementById('inv-search').value = code;
-                searchInventory(); // 自動載入
-                isProcessingScan = false; // 解鎖
-                // 注意：switchPage 會自動呼叫 stopScanner
+                searchInventory();
             } else {
-                // 選擇「取消」：恢復相機
                 if (html5QrcodeScanner) html5QrcodeScanner.resume();
-                // 延遲一點再解鎖，避免立刻又嗶
-                setTimeout(() => { isProcessingScan = false; }, 1000);
             }
+            isProcessingScan = false;
         }
     }
 
@@ -516,17 +499,26 @@
     function addToCart(product) {
         const existing = currentCart.find(i => i.barcode === product.barcode);
         if (existing) {
-            if (existing.qty >= product.stock) {
-                alert('庫存不足！');
-                return;
-            }
+            if (existing.qty >= product.stock) return alert('庫存不足！');
             existing.qty++;
         } else {
-            if (product.stock <= 0) {
-                alert('庫存不足！');
-                return;
-            }
+            if (product.stock <= 0) return alert('庫存不足！');
             currentCart.push({ ...product, qty: 1 });
+        }
+        renderCart();
+    }
+
+    function updateCartQty(index, change) {
+        const item = currentCart[index];
+        const newQty = item.qty + change;
+        
+        if (newQty <= 0) {
+            if(confirm('確定移除此商品？')) currentCart.splice(index, 1);
+        } else {
+            // 檢查總庫存
+            const product = DB_PRODUCTS.find(p => p.barcode === item.barcode);
+            if (newQty > product.stock) return alert('庫存不足！');
+            item.qty = newQty;
         }
         renderCart();
     }
@@ -534,35 +526,44 @@
     function renderCart() {
         const list = document.getElementById('cart-list');
         list.innerHTML = '';
-        let total = 0;
+        let total = 0, totalQty = 0, totalCost = 0;
         
+        if(currentCart.length === 0) {
+            list.innerHTML = `<div style="text-align: center; color: #aaa; margin-top: 40px; display:flex; flex-direction:column; align-items:center;">
+                    <i class="fas fa-barcode" style="font-size: 40px; margin-bottom: 10px;"></i>
+                    請掃描或輸入商品
+                </div>`;
+        }
+
         currentCart.forEach((item, index) => {
             const subtotal = item.price * item.qty;
             total += subtotal;
+            totalQty += item.qty;
+            totalCost += (item.cost * item.qty);
+
             list.innerHTML += `
                 <div class="cart-item">
-                    <div>
-                        <div style="font-weight:bold">${item.name}</div>
-                        <div style="font-size:12px; color:#666">$${item.price} x ${item.qty}</div>
+                    <div style="flex:1">
+                        <div style="font-weight:bold; font-size:16px;">${item.name}</div>
+                        <div style="font-size:12px; color:#666; margin-top:2px;">$${item.price}</div>
                     </div>
-                    <div style="display:flex; align-items:center;">
-                        <span style="font-weight:bold; margin-right:10px;">$${subtotal}</span>
-                        <i class="fas fa-trash" style="color:#d32f2f; cursor:pointer;" onclick="removeCartItem(${index})"></i>
+                    <div class="qty-control">
+                        <button class="qty-btn" onclick="updateCartQty(${index}, -1)"><i class="fas fa-minus" style="font-size:10px"></i></button>
+                        <span style="font-weight:bold; min-width:20px; text-align:center;">${item.qty}</span>
+                        <button class="qty-btn" onclick="updateCartQty(${index}, 1)"><i class="fas fa-plus" style="font-size:10px"></i></button>
                     </div>
+                    <div style="font-weight:bold; width: 60px; text-align:right;">$${subtotal}</div>
                 </div>
             `;
         });
         
-        if(currentCart.length === 0) list.innerHTML = '<p style="text-align: center; color: #999; margin-top: 30px;">請掃描商品</p>';
         document.getElementById('cart-total').innerText = `$${total}`;
+        document.getElementById('total-qty').innerText = totalQty;
+        // 隱藏的總成本，方便 debug
+        document.getElementById('total-cost').innerText = `(成本 $${totalCost})`;
     }
 
-    function removeCartItem(index) {
-        currentCart.splice(index, 1);
-        renderCart();
-    }
-
-    // --- 結帳流程 ---
+    // --- 結帳 ---
     function showCheckoutModal() {
         if(currentCart.length === 0) return alert('購物車是空的');
         const total = currentCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
@@ -570,15 +571,12 @@
         document.querySelector('.modal-overlay').style.display = 'flex';
     }
 
-    function closeModal() {
-        document.querySelector('.modal-overlay').style.display = 'none';
-    }
+    function closeModal() { document.querySelector('.modal-overlay').style.display = 'none'; }
 
     function processCheckout() {
         const total = currentCart.reduce((sum, i) => sum + (i.price * i.qty), 0);
         const totalCost = currentCart.reduce((sum, i) => sum + (i.cost * i.qty), 0);
         
-        // 建立交易紀錄
         const tx = {
             id: Date.now().toString(),
             time: new Date().toISOString(),
@@ -586,11 +584,11 @@
             cost: totalCost,
             profit: total - totalCost,
             method: document.getElementById('pay-method').value,
-            items: JSON.parse(JSON.stringify(currentCart))
+            items: JSON.parse(JSON.stringify(currentCart)) // 紀錄當下狀態 (包含當時的成本與售價)
         };
         DB_TRANSACTIONS.push(tx);
 
-        // 扣庫存
+        // 扣庫存與加銷量
         currentCart.forEach(cItem => {
             const p = DB_PRODUCTS.find(p => p.barcode === cItem.barcode);
             if(p) {
@@ -603,52 +601,91 @@
         currentCart = [];
         renderCart();
         closeModal();
-        alert('結帳完成！');
+        alert('收款成功！');
     }
 
-    // --- 進貨管理 ---
+    // --- 進貨管理 (含圖片) ---
+    function handleImageUpload(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // 這裡其實可以加入 Canvas 壓縮邏輯，為 MVP 簡化直接存
+                const base64 = e.target.result;
+                // 簡單檢查大小，避免 LocalStorage 爆掉
+                if(base64.length > 500000) { // 約 500KB
+                    alert('圖片過大，請使用較低解析度');
+                    return;
+                }
+                document.getElementById('inv-img-preview').src = base64;
+                document.getElementById('inv-img-preview').style.display = 'block';
+                document.getElementById('inv-img-icon').style.display = 'none';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
     function searchInventory() {
         const code = document.getElementById('inv-search').value;
         const p = DB_PRODUCTS.find(i => i.barcode === code);
         
+        document.getElementById('edit-form').style.display = 'block';
+        document.getElementById('inv-placeholder').style.display = 'none';
         document.getElementById('inv-barcode').value = code;
+
         if(p) {
-            document.getElementById('inv-mode-title').innerText = "編輯現有商品";
             document.getElementById('inv-name').value = p.name;
             document.getElementById('inv-price').value = p.price;
             document.getElementById('inv-cost').value = p.cost;
             document.getElementById('inv-stock').value = p.stock;
             document.getElementById('inv-threshold').value = p.threshold;
             document.getElementById('inv-expiry').value = p.expiry;
+            if(p.img) {
+                document.getElementById('inv-img-preview').src = p.img;
+                document.getElementById('inv-img-preview').style.display = 'block';
+                document.getElementById('inv-img-icon').style.display = 'none';
+            } else {
+                resetInvImg();
+            }
         } else {
-            document.getElementById('inv-mode-title').innerText = "新增商品 (條碼:" + code + ")";
+            // 新商品
             document.getElementById('inv-name').value = "";
             document.getElementById('inv-price').value = "";
             document.getElementById('inv-cost').value = "";
             document.getElementById('inv-stock').value = "";
             document.getElementById('inv-threshold').value = 5;
             document.getElementById('inv-expiry').value = "";
+            resetInvImg();
         }
+    }
+
+    function resetInvImg() {
+        document.getElementById('inv-img-preview').src = "";
+        document.getElementById('inv-img-preview').style.display = 'none';
+        document.getElementById('inv-img-icon').style.display = 'block';
     }
 
     function saveProduct() {
         const code = document.getElementById('inv-barcode').value;
         if(!code) return alert('請先輸入條碼');
         
+        const imgSrc = document.getElementById('inv-img-preview').src;
+        const hasImg = document.getElementById('inv-img-preview').style.display !== 'none';
+
         const newP = {
             barcode: code,
-            name: document.getElementById('inv-name').value,
+            name: document.getElementById('inv-name').value || "未命名商品",
             price: Number(document.getElementById('inv-price').value),
             cost: Number(document.getElementById('inv-cost').value),
             stock: Number(document.getElementById('inv-stock').value),
             threshold: Number(document.getElementById('inv-threshold').value),
             expiry: document.getElementById('inv-expiry').value,
+            img: hasImg ? imgSrc : "",
             sold: 0
         };
 
         const idx = DB_PRODUCTS.findIndex(p => p.barcode === code);
         if(idx >= 0) {
-            newP.sold = DB_PRODUCTS[idx].sold; // 保留銷量
+            newP.sold = DB_PRODUCTS[idx].sold;
             DB_PRODUCTS[idx] = newP;
         } else {
             DB_PRODUCTS.push(newP);
@@ -657,90 +694,203 @@
         saveDB();
         alert('儲存成功');
         document.getElementById('inv-search').value = "";
-        document.getElementById('inv-name').value = "";
+        document.getElementById('edit-form').style.display = 'none';
+        document.getElementById('inv-placeholder').style.display = 'block';
     }
 
-    // --- 績效 & 倉儲 & 設定 (簡化邏輯) ---
+    function deleteProduct() {
+        const code = document.getElementById('inv-barcode').value;
+        if(confirm(`確定刪除條碼 ${code} 的商品資料？`)) {
+            const idx = DB_PRODUCTS.findIndex(p => p.barcode === code);
+            if(idx >= 0) {
+                DB_PRODUCTS.splice(idx, 1);
+                saveDB();
+                alert('已刪除');
+                document.getElementById('edit-form').style.display = 'none';
+                document.getElementById('inv-placeholder').style.display = 'block';
+            }
+        }
+    }
+
+    // --- 績效分析 (真實數據運算) ---
     let chartInstance = null;
+    
     function loadStats(period) {
-        // 這裡為了MVP演示，簡單切換數字，實際應用需過濾日期
-        const totalRev = DB_TRANSACTIONS.reduce((acc, t) => acc + t.total, 0);
-        const totalProfit = DB_TRANSACTIONS.reduce((acc, t) => acc + t.profit, 0);
-        
+        // UI Button State
+        document.querySelectorAll('#page-performance .btn-sm').forEach(b => b.classList.replace('btn-primary','btn-outline'));
+        document.querySelectorAll('#page-performance .btn-sm').forEach(b => b.classList.remove('active')); // remove custom active
+        document.getElementById(`btn-stat-${period}`).classList.replace('btn-outline','btn-primary');
+
+        const now = new Date();
+        let filteredTx = [];
+        let labels = [];
+        let dataRevenue = [];
+
+        // 1. 過濾數據
+        if (period === 'day') {
+            const todayStr = now.toISOString().split('T')[0];
+            filteredTx = DB_TRANSACTIONS.filter(t => t.time.startsWith(todayStr));
+            labels = ['今日'];
+            dataRevenue = [filteredTx.reduce((sum, t) => sum + t.total, 0)];
+        } 
+        else if (period === 'week') {
+            // 簡單取過去7天
+            for(let i=6; i>=0; i--) {
+                const d = new Date(); d.setDate(now.getDate() - i);
+                const dStr = d.toISOString().split('T')[0];
+                const label = `${d.getMonth()+1}/${d.getDate()}`;
+                const dailyTotal = DB_TRANSACTIONS
+                    .filter(t => t.time.startsWith(dStr))
+                    .reduce((sum, t) => sum + t.total, 0);
+                
+                labels.push(label);
+                dataRevenue.push(dailyTotal);
+                filteredTx = filteredTx.concat(DB_TRANSACTIONS.filter(t => t.time.startsWith(dStr)));
+            }
+        }
+        else {
+            // 全部 (依月份簡化)
+            filteredTx = DB_TRANSACTIONS;
+            // 這裡做個簡單的月聚合
+            const monthMap = {};
+            filteredTx.forEach(t => {
+                const m = t.time.substring(0, 7); // YYYY-MM
+                monthMap[m] = (monthMap[m] || 0) + t.total;
+            });
+            labels = Object.keys(monthMap).sort();
+            dataRevenue = labels.map(m => monthMap[m]);
+        }
+
+        // 2. 計算總額
+        const totalRev = filteredTx.reduce((acc, t) => acc + t.total, 0);
+        const totalProfit = filteredTx.reduce((acc, t) => acc + t.profit, 0);
+
         document.getElementById('stat-revenue').innerText = `$${totalRev}`;
         document.getElementById('stat-profit').innerText = `$${totalProfit}`;
 
-        // 圖表
+        // 3. 繪製圖表
         const ctx = document.getElementById('salesChart').getContext('2d');
         if(chartInstance) chartInstance.destroy();
+        
         chartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['A', 'B', 'C', 'D', 'E'],
+                labels: labels,
                 datasets: [{
-                    label: '銷售趨勢',
-                    data: [100, 200, 150, 300, 250], // 模擬數據
-                    backgroundColor: '#2E7D32'
+                    label: '營業額',
+                    data: dataRevenue,
+                    backgroundColor: '#2E7D32',
+                    borderRadius: 4
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true } }
+            }
         });
     }
 
+    // --- 倉儲監控 ---
     function renderWarehouse(mode) {
+        // Button Styles
+        document.getElementById('tab-alert').style.fontWeight = mode==='alert'?'bold':'normal';
+        document.getElementById('tab-ranking').style.fontWeight = mode==='ranking'?'bold':'normal';
+
         const div = document.getElementById('warehouse-list');
         div.innerHTML = '';
         
         let list = [];
         if(mode === 'ranking') {
-            list = [...DB_PRODUCTS].sort((a,b) => b.sold - a.sold);
-            div.innerHTML = '<h4>銷售排行</h4>';
+            list = [...DB_PRODUCTS].sort((a,b) => b.sold - a.sold); // 銷量高到低
         } else {
-            // 預警 + 即期
-            list = DB_PRODUCTS.filter(p => p.stock <= p.threshold);
-            div.innerHTML = '<h4>庫存不足 / 即期品</h4>';
+            // 庫存低於預警 OR 過期 (假設今天 > expiry)
+            const today = new Date().toISOString().split('T')[0];
+            list = DB_PRODUCTS.filter(p => p.stock <= p.threshold || (p.expiry && p.expiry <= today));
         }
 
+        if(list.length === 0) div.innerHTML = '<p style="text-align:center;color:#999;margin-top:20px;">目前狀況良好，無資料。</p>';
+
         list.forEach(p => {
+            const isLow = p.stock <= p.threshold;
+            const isExp = p.expiry && p.expiry <= new Date().toISOString().split('T')[0];
+            
+            let statusBadge = '';
+            if(isExp) statusBadge += `<span style="background:#d32f2f; color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-right:5px;">過期/即期</span>`;
+            if(isLow) statusBadge += `<span style="background:#FF9800; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">補貨</span>`;
+
             div.innerHTML += `
-                <div class="card" style="padding:10px; margin-bottom:10px;">
-                    <div style="display:flex; justify-content:space-between;">
-                        <b>${p.name}</b>
-                        <span style="color:${p.stock<=p.threshold?'red':'green'}">存: ${p.stock}</span>
-                    </div>
-                    <div style="font-size:12px; color:#666">
-                        條碼: ${p.barcode} | 售出: ${p.sold}
+                <div class="card" style="padding:12px; margin-bottom:10px; display:flex; align-items:center;">
+                    <div style="flex:1">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                            <b style="font-size:16px;">${p.name}</b>
+                            <span style="font-weight:bold; color:${isLow||isExp?'#d32f2f':'#2E7D32'}">庫存: ${p.stock}</span>
+                        </div>
+                        <div style="font-size:12px; color:#666; display:flex; align-items:center;">
+                            ${statusBadge}
+                            <span style="margin-left:auto;">已售: ${p.sold}</span>
+                        </div>
                     </div>
                 </div>
             `;
         });
     }
 
-    function exportData(type) {
-        let content = "", mime = "", name = "";
-        if(type === 'jsonl') {
-            content = DB_TRANSACTIONS.map(t => JSON.stringify(t)).join('\n');
-            mime = "application/json";
-            name = "data.jsonl";
-        } else {
-            content = "TransactionID,Total,Date\n" + DB_TRANSACTIONS.map(t => `${t.id},${t.total},${t.time}`).join('\n');
-            mime = "text/csv";
-            name = "data.csv";
-        }
+    // --- 匯出功能 (CSV & JSONL) ---
+    function exportCSV() {
+        // 產生交易明細表 (每項商品一行)
+        let csvContent = "\uFEFF"; // BOM for Excel encoding
+        csvContent += "交易ID,時間,商品條碼,商品名稱,單價,成本,數量,小計,毛利,付款方式\n";
+
+        DB_TRANSACTIONS.forEach(tx => {
+            tx.items.forEach(item => {
+                const subtotal = item.price * item.qty;
+                const costTotal = item.cost * item.qty;
+                const profit = subtotal - costTotal;
+                
+                // 處理可能包含逗號的字串
+                const safeName = `"${item.name.replace(/"/g, '""')}"`;
+                
+                const row = [
+                    tx.id,
+                    tx.time,
+                    `'${item.barcode}`, // Excel 防轉科學記號
+                    safeName,
+                    item.price,
+                    item.cost,
+                    item.qty,
+                    subtotal,
+                    profit,
+                    tx.method
+                ].join(",");
+                csvContent += row + "\n";
+            });
+        });
+
+        downloadFile(csvContent, "transaction_details.csv", "text/csv");
+    }
+
+    function exportJSONL() {
+        const content = DB_TRANSACTIONS.map(t => JSON.stringify(t)).join('\n');
+        downloadFile(content, "backup_data.jsonl", "application/json");
+    }
+
+    function downloadFile(content, fileName, mimeType) {
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([content], {type: mime}));
-        a.download = name;
+        a.href = URL.createObjectURL(new Blob([content], {type: mimeType}));
+        a.download = fileName;
         a.click();
     }
 
     function clearAllData() {
-        if(confirm('確定清空？')) {
-            localStorage.clear();
+        if(confirm('警告！此動作將清除所有商品與交易紀錄，且無法復原。\n\n確定要重置系統嗎？')) {
+            localStorage.removeItem('sma_v2_products');
+            localStorage.removeItem('sma_v2_transactions');
             location.reload();
         }
     }
 
-    // 啟動
+    // 啟動與初始化
     switchPage('page-checkout', '結帳櫃台');
 
 </script>
